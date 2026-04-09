@@ -287,8 +287,8 @@ private fun toUserBillingState(adState: AdState, purchaseState: PurchaseState, t
         else -> UserBillingState.AD_REQUESTED
     }
 
-internal val TRIAL_SESSION_DURATION_DURATION = 30.minutes
+internal val TRIAL_SESSION_DURATION_DURATION = 1440.minutes
 @VisibleForTesting internal val AD_WATCHED_STATE_DURATION = 30.minutes
 
-private const val MAX_TRIAL_COUNT = 3
+private const val MAX_TRIAL_COUNT = 100
 private const val TAG = "RevenueRepository"
