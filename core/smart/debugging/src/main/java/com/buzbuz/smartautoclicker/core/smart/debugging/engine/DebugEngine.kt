@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.processing.domain.EventType
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
+import com.buzbuz.smartautoclicker.core.processing.domain.model.DebugGestureInfo
 import com.buzbuz.smartautoclicker.core.processing.domain.model.ProcessedConditionResult
 import com.buzbuz.smartautoclicker.core.smart.debugging.data.DebugReportLocalDataSource
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.model.live.DebugLiveEventConditionResult
@@ -85,6 +86,9 @@ internal class DebugEngine @Inject constructor(
 
     private val _lastEventProcessed: MutableStateFlow<DebugLiveEventOccurrence?> = MutableStateFlow(null)
     val lastEventProcessed: StateFlow<DebugLiveEventOccurrence?> = _lastEventProcessed
+
+    private val _lastGestureExecuted: MutableStateFlow<DebugGestureInfo?> = MutableStateFlow(null)
+    val lastGestureExecuted: StateFlow<DebugGestureInfo?> = _lastGestureExecuted
 
 
     override fun onSessionStarted(
@@ -223,6 +227,13 @@ internal class DebugEngine @Inject constructor(
         }
     }
 
+    override fun onGestureExecuted(gesture: DebugGestureInfo) {
+        coroutineScopeIo.launch {
+            if (!shouldGenerateLiveEvents) return@launch
+            _lastGestureExecuted.value = gesture
+        }
+    }
+
     override fun onSessionEnded() {
         coroutineScopeIo.launch {
             if (shouldWriteReport) {
@@ -246,6 +257,7 @@ internal class DebugEngine @Inject constructor(
             eventOccurrencesRecorder.reset()
             screenConditionOccurrenceRecorder.reset()
             _lastEventProcessed.value = null
+            _lastGestureExecuted.value = null
             _isDebuggingSession.value = false
             isReportEnabled = false
             shouldGenerateLiveEvents = false

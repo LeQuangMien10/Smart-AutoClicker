@@ -44,6 +44,14 @@ class MoreViewModel @Inject constructor(
     private val _isDebugViewEnabled = MutableStateFlow(debuggingRepository.isDebugViewEnabled())
     val isDebugViewEnabled: Flow<Boolean> = _isDebugViewEnabled
 
+    /** Tells if the detection area overlay is enabled or not. */
+    private val _isConditionOverlayEnabled = MutableStateFlow(debuggingRepository.isConditionOverlayEnabled())
+    val isConditionOverlayEnabled: Flow<Boolean> = _isConditionOverlayEnabled
+
+    /** Tells if the gesture overlay is enabled or not. */
+    private val _isGestureOverlayEnabled = MutableStateFlow(debuggingRepository.isGestureOverlayEnabled())
+    val isGestureOverlayEnabled: Flow<Boolean> = _isGestureOverlayEnabled
+
     /** Tells if the debug report is enabled or not. */
     private val _isDebugReportEnabled = MutableStateFlow(debuggingRepository.isDebugReportEnabled())
     val isDebugReportEnabled: Flow<Boolean> = _isDebugReportEnabled
@@ -65,12 +73,25 @@ class MoreViewModel @Inject constructor(
         _isDebugViewEnabled.value = !_isDebugViewEnabled.value
     }
 
+    fun toggleIsConditionOverlayEnabled() {
+        _isConditionOverlayEnabled.value = !_isConditionOverlayEnabled.value
+    }
+
+    fun toggleIsGestureOverlayEnabled() {
+        _isGestureOverlayEnabled.value = !_isGestureOverlayEnabled.value
+    }
+
     fun toggleIsDebugReportEnabled() {
         _isDebugReportEnabled.value = !_isDebugReportEnabled.value
     }
 
     fun saveConfig() {
-        debuggingRepository.setDebuggingConfig(_isDebugViewEnabled.value, _isDebugReportEnabled.value)
+        debuggingRepository.setDebuggingConfig(
+            _isDebugViewEnabled.value,
+            _isConditionOverlayEnabled.value,
+            _isGestureOverlayEnabled.value,
+            _isDebugReportEnabled.value,
+        )
     }
 
     fun getTutorialActivityComponent(): ComponentName =

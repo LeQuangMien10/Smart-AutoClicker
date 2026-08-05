@@ -32,28 +32,39 @@ import kotlin.math.min
 import kotlin.random.Random
 
 
-fun Path.moveTo(position: Point, random: Random?) {
-    if (random == null) safeMoveTo(position.x, position.y)
-    else safeMoveTo(
-        random.nextIntInOffset(position.x, RANDOMIZATION_POSITION_MAX_OFFSET_PX),
-        random.nextIntInOffset(position.y, RANDOMIZATION_POSITION_MAX_OFFSET_PX),
+/**
+ * Move to [position], applying the anti-detection randomization offset (if [random] is provided).
+ * @return the actual position that was set on the path, i.e. [position] after the randomization offset.
+ */
+fun Path.moveTo(position: Point, random: Random?): Point {
+    val actualPosition = position.randomize(random)
+    safeMoveTo(actualPosition.x, actualPosition.y)
+    return actualPosition
+}
+
+/**
+ * Draw a line from [from] to [to], applying the anti-detection randomization offset (if [random] is provided) on
+ * both ends.
+ * @return the actual from/to positions that were set on the path, after the randomization offset.
+ */
+fun Path.line(from: Point, to: Point, random: Random?): Pair<Point, Point> {
+    val actualFrom = moveTo(from, random)
+    val actualTo = lineTo(to, random)
+    return actualFrom to actualTo
+}
+
+private fun Path.lineTo(position: Point, random: Random?): Point {
+    val actualPosition = position.randomize(random)
+    safeLineTo(actualPosition.x, actualPosition.y)
+    return actualPosition
+}
+
+private fun Point.randomize(random: Random?): Point =
+    if (random == null) this
+    else Point(
+        random.nextIntInOffset(x, RANDOMIZATION_POSITION_MAX_OFFSET_PX),
+        random.nextIntInOffset(y, RANDOMIZATION_POSITION_MAX_OFFSET_PX),
     )
-}
-
-fun Path.line(from: Point?, to: Point?, random: Random?) {
-    if (from == null || to == null) return
-
-    moveTo(from, random)
-    lineTo(to, random)
-}
-
-private fun Path.lineTo(position: Point, random: Random?) {
-    if (random == null) safeLineTo(position.x, position.y)
-    else safeLineTo(
-        random.nextIntInOffset(position.x, RANDOMIZATION_POSITION_MAX_OFFSET_PX),
-        random.nextIntInOffset(position.y, RANDOMIZATION_POSITION_MAX_OFFSET_PX),
-    )
-}
 
 fun GestureDescription.Builder.buildSingleStroke(
     path: Path,

@@ -21,6 +21,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
+import com.buzbuz.smartautoclicker.core.processing.domain.model.DebugGestureInfo
 import com.buzbuz.smartautoclicker.core.processing.domain.model.ProcessedConditionResult
 
 
@@ -102,6 +103,12 @@ interface SmartProcessingListener {
      * @param newValue the value of the event state after the change.
      */
     fun onEventStateChanged(event: Event, newValue: Boolean) = Unit
+
+    /**
+     * A gesture (click or swipe) have just been dispatched to the device.
+     * @param gesture info about the executed gesture.
+     */
+    fun onGestureExecuted(gesture: DebugGestureInfo) = Unit
 
     /** The processing session have ended.*/
     fun onSessionEnded() = Unit

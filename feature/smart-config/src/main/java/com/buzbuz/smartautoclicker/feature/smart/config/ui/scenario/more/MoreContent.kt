@@ -59,6 +59,18 @@ class MoreContent(appContext: Context) : NavBarDialogContent(appContext) {
                 setOnClickListener(viewModel::toggleIsDebugViewEnabled)
             }
 
+            fieldConditionOverlay.apply {
+                setTitle(context.getString(R.string.field_show_condition_overlay_title))
+                setDescription(context.getString(R.string.field_show_condition_overlay_desc))
+                setOnClickListener(viewModel::toggleIsConditionOverlayEnabled)
+            }
+
+            fieldGestureOverlay.apply {
+                setTitle(context.getString(R.string.field_show_gesture_overlay_title))
+                setDescription(context.getString(R.string.field_show_gesture_overlay_desc))
+                setOnClickListener(viewModel::toggleIsGestureOverlayEnabled)
+            }
+
             fieldDebugReport.apply {
                 setTitle(context.getString(R.string.item_title_debug_generate_report))
                 setDescription(context.getString(R.string.item_desc_debug_generate_report))
@@ -90,6 +102,8 @@ class MoreContent(appContext: Context) : NavBarDialogContent(appContext) {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.isDebugViewEnabled.collect(viewBinding.fieldDebugOverlay::setChecked) }
+                launch { viewModel.isConditionOverlayEnabled.collect(viewBinding.fieldConditionOverlay::setChecked) }
+                launch { viewModel.isGestureOverlayEnabled.collect(viewBinding.fieldGestureOverlay::setChecked) }
                 launch { viewModel.isDebugReportEnabled.collect(viewBinding.fieldDebugReport::setChecked) }
                 launch { viewModel.showDebugReportEnabled.collect(::updateDebugReportAvailability) }
                 launch { viewModel.counterFieldDescription.collect(::updateCountersDesc) }

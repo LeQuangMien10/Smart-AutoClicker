@@ -38,14 +38,24 @@ internal class DebugConfigurationLocalDataSource @Inject constructor(
     fun isDebugViewEnabled(): Boolean =
         sharedPreferences.getBoolean(PREF_DEBUG_VIEW_ENABLED, false)
 
+    /** @return the isEnabled value for the detection area overlay. */
+    fun isConditionOverlayEnabled(): Boolean =
+        sharedPreferences.getBoolean(PREF_CONDITION_OVERLAY_ENABLED, false)
+
+    /** @return the isEnabled value for the gesture overlay. */
+    fun isGestureOverlayEnabled(): Boolean =
+        sharedPreferences.getBoolean(PREF_GESTURE_OVERLAY_ENABLED, false)
+
     /** @return the isEnabled value for the debug report. */
     fun isDebugReportEnabled(): Boolean =
         sharedPreferences.getBoolean(PREF_DEBUG_REPORT_ENABLED, false)
 
     /** Save a new enabled value for the debug report. */
-    fun setDebuggingConfig(debugView: Boolean, debugReport: Boolean) =
+    fun setDebuggingConfig(debugView: Boolean, conditionOverlay: Boolean, gestureOverlay: Boolean, debugReport: Boolean) =
         sharedPreferences.edit {
             putBoolean(PREF_DEBUG_VIEW_ENABLED, debugView)
+            putBoolean(PREF_CONDITION_OVERLAY_ENABLED, conditionOverlay)
+            putBoolean(PREF_GESTURE_OVERLAY_ENABLED, gestureOverlay)
             putBoolean(PREF_DEBUG_REPORT_ENABLED, debugReport)
         }
 }
@@ -54,5 +64,9 @@ internal class DebugConfigurationLocalDataSource @Inject constructor(
 private const val DEBUG_CONFIGURATION_PREFERENCES_NAME = "DebugConfigPreferences"
 /** User selection for the debug view visibility in the SharedPreferences. */
 private const val PREF_DEBUG_VIEW_ENABLED = "Debug_View_Enabled"
+/** User selection for the detection area overlay visibility in the SharedPreferences. */
+private const val PREF_CONDITION_OVERLAY_ENABLED = "Condition_Overlay_Enabled"
+/** User selection for the gesture overlay visibility in the SharedPreferences. */
+private const val PREF_GESTURE_OVERLAY_ENABLED = "Gesture_Overlay_Enabled"
 /** User selection for the debug report in the SharedPreferences. */
 private const val PREF_DEBUG_REPORT_ENABLED = "Debug_Report_Enabled"

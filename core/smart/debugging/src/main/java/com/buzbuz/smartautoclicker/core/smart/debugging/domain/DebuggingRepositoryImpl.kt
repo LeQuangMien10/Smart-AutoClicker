@@ -18,6 +18,7 @@ package com.buzbuz.smartautoclicker.core.smart.debugging.domain
 
 import com.buzbuz.smartautoclicker.core.base.di.Dispatcher
 import com.buzbuz.smartautoclicker.core.base.di.HiltCoroutineDispatchers.IO
+import com.buzbuz.smartautoclicker.core.processing.domain.model.DebugGestureInfo
 import com.buzbuz.smartautoclicker.core.smart.debugging.data.DebugConfigurationLocalDataSource
 import com.buzbuz.smartautoclicker.core.smart.debugging.data.DebugReportLocalDataSource
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.model.live.DebugLiveEventOccurrence
@@ -54,8 +55,19 @@ internal class DebuggingRepositoryImpl @Inject constructor(
         isDebuggingSession && isDebugViewEnabled()
     }
 
+    override val isLiveConditionOverlay: Flow<Boolean> = debugEngine.isDebuggingSession.map { isDebuggingSession ->
+        isDebuggingSession && isConditionOverlayEnabled()
+    }
+
+    override val isLiveGestureOverlay: Flow<Boolean> = debugEngine.isDebuggingSession.map { isDebuggingSession ->
+        isDebuggingSession && isGestureOverlayEnabled()
+    }
+
     override val lastImageEventProcessed: Flow<DebugLiveEventOccurrence?> =
         debugEngine.lastEventProcessed
+
+    override val lastGestureExecuted: Flow<DebugGestureInfo?> =
+        debugEngine.lastGestureExecuted
 
     override val isDebugReportAvailable: StateFlow<Boolean> =
         debugReportDataSource.isReportAvailable
@@ -64,16 +76,24 @@ internal class DebuggingRepositoryImpl @Inject constructor(
     override fun isDebugViewEnabled(): Boolean =
         debugConfigurationDataSource.isDebugViewEnabled()
 
+    override fun isConditionOverlayEnabled(): Boolean =
+        debugConfigurationDataSource.isConditionOverlayEnabled()
+
+    override fun isGestureOverlayEnabled(): Boolean =
+        debugConfigurationDataSource.isGestureOverlayEnabled()
+
     override fun isDebugReportEnabled(): Boolean =
         debugConfigurationDataSource.isDebugReportEnabled()
 
-    override fun setDebuggingConfig(debugView: Boolean, debugReport: Boolean) {
+    override fun setDebuggingConfig(debugView: Boolean, conditionOverlay: Boolean, gestureOverlay: Boolean, debugReport: Boolean) {
         ioScope.launch {
             // Debug report is being disabled, remove report files
             if (!debugReport) debugReportDataSource.deleteReport()
 
             debugConfigurationDataSource.setDebuggingConfig(
                 debugView = debugView,
+                conditionOverlay = conditionOverlay,
+                gestureOverlay = gestureOverlay,
                 debugReport = debugReport,
             )
         }

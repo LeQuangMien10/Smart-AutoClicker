@@ -440,6 +440,48 @@ abstract class OverlayMenu(
     }
 
     /**
+     * Dynamically create/attach or destroy/detach the [screenOverlayView] window, calling [onCreateOverlayView]
+     * again if needed.
+     *
+     * Unlike the [screenOverlayView] set up in [onCreate], which is only ever created once, this allows an
+     * implementation to add or remove its overlay window at any later point in its lifecycle (STARTED or above) —
+     * for example when a setting that requires the window is enabled/disabled after the menu was already created.
+     * This matters because the window exists as an extra layer for as long as it is attached, even while drawing
+     * nothing: callers that only need the overlay conditionally should keep it detached (the default, since
+     * [onCreateOverlayView] returns null unless overridden) until actually needed, rather than creating it once and
+     * leaving it always attached.
+     *
+     * @param created true to ensure the overlay window exists (creating it if needed), false to ensure it does not.
+     */
+    protected fun setOverlayViewCreated(created: Boolean) {
+        if (created == (screenOverlayView != null)) return
+
+        if (!created) {
+            screenOverlayView?.let { windowManager.removeView(it) }
+            screenOverlayView = null
+            return
+        }
+
+        val newOverlayView = onCreateOverlayView() ?: return
+        overlayLayoutParams = onCreateOverlayViewLayoutParams().apply {
+            gravity = Gravity.TOP or Gravity.START
+        }
+
+        // Insert below the menu window: remove it, add the overlay, then re-add the menu on top of it. Both add
+        // attempts must run regardless of the other's outcome, or a failure could leave the menu window removed.
+        windowManager.removeView(menuLayout)
+        val overlayAdded = windowManager.safeAddView(newOverlayView, overlayLayoutParams)
+        val menuReAdded = windowManager.safeAddView(menuLayout, menuLayoutParams)
+        if (!overlayAdded || !menuReAdded) {
+            finish()
+            return
+        }
+
+        newOverlayView.visibility = View.VISIBLE
+        screenOverlayView = newOverlayView
+    }
+
+    /**
      * Set the enabled state of a menu item.
      *
      * @param view the view of the menu item to change the state of.

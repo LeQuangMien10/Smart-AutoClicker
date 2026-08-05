@@ -48,6 +48,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.intent.putDomainExtr
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
+import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
+import com.buzbuz.smartautoclicker.core.processing.domain.model.DebugGestureInfo
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -66,6 +68,7 @@ internal class ActionExecutor(
     private val processingState: ProcessingState,
     randomize: Boolean,
     unblockWorkaroundEnabled: Boolean = false,
+    private val progressListener: SmartProcessingListener? = null,
 ) {
 
     init { androidExecutor.resetState() }
@@ -106,21 +109,24 @@ internal class ActionExecutor(
     }
 
     private suspend fun executeClick(event: Event, click: Click, results: ConditionsResults?) {
-        val clickPath = when (click.positionType) {
-            Click.PositionType.USER_SELECTED -> {
-                click.position?.let { position ->
-                    Path().apply { moveTo(position, random) }
-                }
-            }
-
-            Click.PositionType.ON_DETECTED_CONDITION ->
-                getOnConditionClickPath(event, click, results)
+        val clickPosition = when (click.positionType) {
+            Click.PositionType.USER_SELECTED -> click.position
+            Click.PositionType.ON_DETECTED_CONDITION -> getOnConditionClickPosition(event, click, results)
         } ?: return
 
+        val path = Path()
+        val actualClickPosition = path.moveTo(clickPosition, random)
+
         val clickGesture = GestureDescription.Builder().buildSingleStroke(
-            path = clickPath,
+            path = path,
             durationMs = click.pressDuration!!,
             random = random,
+        )
+
+        // Report the position actually dispatched (i.e. after the anti-detection randomization offset), not the
+        // intended one, so the debug overlay reflects what really happens on screen.
+        progressListener?.onGestureExecuted(
+            DebugGestureInfo.Click(actualClickPosition, click.pressDuration!!, System.currentTimeMillis())
         )
 
         withContext(Dispatchers.Main) {
@@ -128,7 +134,7 @@ internal class ActionExecutor(
         }
     }
 
-    private fun getOnConditionClickPath(event: Event, click: Click, results: ConditionsResults?): Path? {
+    private fun getOnConditionClickPosition(event: Event, click: Click, results: ConditionsResults?): Point? {
         if (event !is ScreenEvent) return null
 
         val result = when {
@@ -142,15 +148,10 @@ internal class ActionExecutor(
             return null
         }
 
-        return Path().apply {
-            moveTo(
-                position = Point(
-                    (result.position?.x ?: 0) + (click.clickOffset?.x ?: 0),
-                    (result.position?.y ?: 0) + (click.clickOffset?.y ?: 0),
-                ),
-                random = random,
-            )
-        }
+        return Point(
+            (result.position?.x ?: 0) + (click.clickOffset?.x ?: 0),
+            (result.position?.y ?: 0) + (click.clickOffset?.y ?: 0),
+        )
     }
 
     /**
@@ -158,12 +159,22 @@ internal class ActionExecutor(
      * @param swipe the swipe to be executed.
      */
     private suspend fun executeSwipe(swipe: Swipe) {
+        val from = swipe.from ?: return
+        val to = swipe.to ?: return
+
+        val path = Path()
+        val (actualFrom, actualTo) = path.line(from, to, random)
+
         val swipeGesture = GestureDescription.Builder().buildSingleStroke(
-            path =
-                if (swipe.from == null || swipe.to == null) return
-                else Path().apply { line(swipe.from, swipe.to, random) },
+            path = path,
             durationMs = swipe.swipeDuration!!,
             random = random,
+        )
+
+        // Report the positions actually dispatched (i.e. after the anti-detection randomization offset), not the
+        // intended ones, so the debug overlay reflects what really happens on screen.
+        progressListener?.onGestureExecuted(
+            DebugGestureInfo.Swipe(actualFrom, actualTo, swipe.swipeDuration!!, System.currentTimeMillis())
         )
 
         withContext(Dispatchers.Main) {

@@ -171,7 +171,9 @@ class MainMenuModel @Inject constructor(
             smartProcessingRepository.startDetection(
                 context = context,
                 autoStopDuration = revenueRepository.consumeTrial(),
-                liveDebugging = debuggingRepository.isDebugViewEnabled(),
+                liveDebugging = debuggingRepository.isDebugViewEnabled() ||
+                        debuggingRepository.isConditionOverlayEnabled() ||
+                        debuggingRepository.isGestureOverlayEnabled(),
                 generateReport = debuggingRepository.isDebugReportEnabled(),
             )
         }

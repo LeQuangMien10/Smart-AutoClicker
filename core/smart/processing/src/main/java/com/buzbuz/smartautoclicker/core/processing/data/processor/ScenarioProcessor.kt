@@ -79,6 +79,7 @@ internal class ScenarioProcessor(
         processingState = processingState,
         randomize = randomize,
         unblockWorkaroundEnabled = unblockWorkaroundEnabled,
+        progressListener = progressListener,
     )
 
     fun onScenarioStart(context: Context) {

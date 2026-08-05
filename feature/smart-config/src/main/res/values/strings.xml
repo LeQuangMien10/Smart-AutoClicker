@@ -169,6 +169,10 @@
 
     <string name="field_show_debug_view_title">Show debug view</string>
     <string name="field_show_debug_view_desc">Display the events triggered while detecting.</string>
+    <string name="field_show_condition_overlay_title">Show detection areas</string>
+    <string name="field_show_condition_overlay_desc">Draw a box on screen around the last detected condition.</string>
+    <string name="field_show_gesture_overlay_title">Show gestures</string>
+    <string name="field_show_gesture_overlay_desc">Draw a dot or a line on screen for each click or swipe executed.</string>
     <string name="item_title_debug_generate_report">Generate a report</string>
     <string name="item_desc_debug_generate_report">Capture your scenario behaviour while detecting to create a report.</string>
 
@@ -352,6 +356,20 @@
     <string name="field_click_offset_desc" translatable="false">X=%1$d Y=%2$d</string>
     <string name="field_click_offset_x" translatable="false">X</string>
     <string name="field_click_offset_y" translatable="false">Y</string>
+
+
+    <!-- Dialog Condition Area Selector ============================================================================ -->
+
+    <string name="content_desc_edit_area_manually">Enter the area coordinates manually</string>
+
+    <string name="dialog_title_manual_area_input">Detection area</string>
+    <string name="field_manual_area_left" translatable="false">Left</string>
+    <string name="field_manual_area_top" translatable="false">Top</string>
+    <string name="field_manual_area_right" translatable="false">Right</string>
+    <string name="field_manual_area_bottom" translatable="false">Bottom</string>
+    <string name="error_manual_area_left_right">Left must be smaller than Right, within screen bounds</string>
+    <string name="error_manual_area_top_bottom">Top must be smaller than Bottom, within screen bounds</string>
+    <string name="error_manual_area_min_size">Area must be at least %1$d x %2$d px</string>
 
 
     <!-- Dialog Action Swipe ======================================================================================= -->

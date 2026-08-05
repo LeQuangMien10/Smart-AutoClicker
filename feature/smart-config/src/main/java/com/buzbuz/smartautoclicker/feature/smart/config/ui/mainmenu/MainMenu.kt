@@ -22,6 +22,7 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
+import android.view.WindowManager
 import androidx.core.view.isVisible
 
 import androidx.lifecycle.Lifecycle
@@ -37,6 +38,7 @@ import com.buzbuz.smartautoclicker.core.common.overlays.manager.OverlayManager.C
 import com.buzbuz.smartautoclicker.core.common.overlays.menu.OverlayMenu
 import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.data.Tip
 import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.monitoring.MonitoredOverlayType
+import com.buzbuz.smartautoclicker.core.processing.domain.model.DebugGestureInfo
 import com.buzbuz.smartautoclicker.core.ui.utils.AnimatedStatesImageButtonController
 import com.buzbuz.smartautoclicker.core.ui.utils.getDynamicColorsContext
 import com.buzbuz.smartautoclicker.feature.smart.config.R
@@ -48,6 +50,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.mainmenu.debugging.Li
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.mainmenu.debugging.LiveDebuggingUiState
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.mainmenu.debugging.LiveDebuggingViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.ScenarioDialog
+import com.buzbuz.smartautoclicker.feature.smart.debugging.ui.view.DebugOverlayView
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
@@ -61,8 +64,11 @@ import kotlinx.coroutines.launch
  * once the user has selected a scenario to be used. It allows the user to start the detection on the currently loaded
  * scenario, as well as editing the attached list of events.
  *
- * There is no overlay views attached to this overlay menu, meaning that the user will always be able to clicks on the
- * Activities displayed below it.
+ * A [DebugOverlayView] is attached as the screen overlay to draw the detection bounding boxes, but only when at
+ * least one debug/overlay setting is enabled (see [LiveDebuggingViewModel.isAnyOverlayEnabled]): this window is an
+ * extra layer composited on every frame MediaProjection captures for detection, so it must not exist at all for the
+ * common case where the user has no debug feature enabled. Its window is not touchable, meaning that the user will
+ * always be able to click on the Activities displayed below it.
  */
 class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
 
@@ -95,6 +101,10 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
 
     /** The coroutine job for the observable used in debug mode. Null when not in debug mode. */
     private var debugObservableJob: Job? = null
+    /** The coroutine job for the detection area overlay observable. Null when the overlay is disabled. */
+    private var conditionOverlayObservableJob: Job? = null
+    /** The coroutine job for the gesture overlay observable. Null when the overlay is disabled. */
+    private var gestureOverlayObservableJob: Job? = null
 
     /**
      * Tells if this service has handled onKeyEvent with ACTION_DOWN for a key in order to return
@@ -115,6 +125,15 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
 
         return viewBinding.root
     }
+
+    override fun onCreateOverlayView(): View? =
+        if (debuggingViewModel.isConditionOrGestureOverlayEnabled()) DebugOverlayView(context) else null
+
+    override fun onCreateOverlayViewLayoutParams(): WindowManager.LayoutParams =
+        super.onCreateOverlayViewLayoutParams().apply {
+            // The bounding boxes are informative only: never intercept touches meant for the app below.
+            flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        }
 
     override fun onCreate() {
         super.onCreate()
@@ -140,6 +159,9 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
                 launch { viewModel.nativeLibError.collect(::showNativeLibErrorDialogIfNeeded) }
                 launch { viewModel.screenCaptureError.collect(::showScreenCaptureErrorDialogIfNeeded) }
                 launch { debuggingViewModel.isDebugging.collect(::updateDebugOverlayViewVisibility) }
+                launch { debuggingViewModel.isAnyOverlayActive.collect(::setOverlayViewCreated) }
+                launch { debuggingViewModel.isConditionOverlayEnabled.collect(::updateConditionOverlayVisibility) }
+                launch { debuggingViewModel.isGestureOverlayEnabled.collect(::updateGestureOverlayVisibility) }
             }
         }
     }
@@ -321,9 +343,73 @@ class MainMenu(private val onStopClicked: () -> Unit) : OverlayMenu() {
      */
     private fun observeDebugValues() = lifecycleScope.launch {
         repeatOnLifecycle(Lifecycle.State.STARTED) {
-            launch {
-                debuggingViewModel.debugLastPositive.collect(::updateLiveDebugUiState)
+            debuggingViewModel.debugLastPositive.collect(::updateLiveDebugUiState)
+        }
+    }
+
+    /**
+     * Change the visibility of the detection area overlay. This is a setting independent from the debug view
+     * text panel (see [updateDebugOverlayViewVisibility]).
+     * @param isVisible true when the detection area boxes should be drawn, false to hide them.
+     */
+    private fun updateConditionOverlayVisibility(isVisible: Boolean) {
+        if (isVisible && conditionOverlayObservableJob == null) {
+            conditionOverlayObservableJob = observeConditionOverlayValues()
+
+        } else if (!isVisible && conditionOverlayObservableJob != null) {
+            conditionOverlayObservableJob?.cancel()
+            conditionOverlayObservableJob = null
+
+            (screenOverlayView as? DebugOverlayView)?.clear()
+        }
+    }
+
+    /**
+     * Observe the detection area values and update the [DebugOverlayView].
+     * @return the coroutine job for the observable. Can be cancelled to stop the observation.
+     */
+    private fun observeConditionOverlayValues() = lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) {
+            debuggingViewModel.debugConditionAreas.collect { areas ->
+                (screenOverlayView as? DebugOverlayView)?.setResults(areas)
             }
+        }
+    }
+
+    /**
+     * Change the visibility of the gesture (click/swipe) overlay. This is a setting independent from the debug
+     * view text panel and the detection area overlay (see [updateDebugOverlayViewVisibility] and
+     * [updateConditionOverlayVisibility]).
+     * @param isVisible true when the gesture feedback should be drawn, false to hide it.
+     */
+    private fun updateGestureOverlayVisibility(isVisible: Boolean) {
+        if (isVisible && gestureOverlayObservableJob == null) {
+            gestureOverlayObservableJob = observeGestureOverlayValues()
+
+        } else if (!isVisible && gestureOverlayObservableJob != null) {
+            gestureOverlayObservableJob?.cancel()
+            gestureOverlayObservableJob = null
+
+            (screenOverlayView as? DebugOverlayView)?.clearGesture()
+        }
+    }
+
+    /**
+     * Observe the gesture values and update the [DebugOverlayView].
+     * @return the coroutine job for the observable. Can be cancelled to stop the observation.
+     */
+    private fun observeGestureOverlayValues() = lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) {
+            debuggingViewModel.debugGesture.collect(::updateGestureVisual)
+        }
+    }
+
+    private fun updateGestureVisual(gesture: DebugGestureInfo?) {
+        val overlayView = screenOverlayView as? DebugOverlayView ?: return
+        when (gesture) {
+            is DebugGestureInfo.Click -> overlayView.setGestureClick(gesture.position)
+            is DebugGestureInfo.Swipe -> overlayView.setGestureSwipe(gesture.from, gesture.to)
+            null -> overlayView.clearGesture()
         }
     }
 
