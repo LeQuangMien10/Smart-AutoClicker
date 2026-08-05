@@ -36,7 +36,7 @@ import com.buzbuz.smartautoclicker.core.common.navigation.getTutorialNavigator
 import com.buzbuz.smartautoclicker.core.common.overlays.base.viewModels
 import com.buzbuz.smartautoclicker.core.common.overlays.manager.OverlayManager.Companion.showAsOverlay
 import com.buzbuz.smartautoclicker.core.common.overlays.menu.OverlayMenu
-import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.data.Tip
+import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.Tip
 import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.monitoring.MonitoredOverlayType
 import com.buzbuz.smartautoclicker.core.processing.domain.model.DebugGestureInfo
 import com.buzbuz.smartautoclicker.core.ui.utils.AnimatedStatesImageButtonController
