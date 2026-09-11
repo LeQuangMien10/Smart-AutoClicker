@@ -458,7 +458,7 @@ abstract class OverlayMenu(
         if (created == (screenOverlayView != null)) return
 
         if (!created) {
-            screenOverlayView?.let { windowManager.removeView(it) }
+            screenOverlayView?.let { windowManager.safeRemoveView(it) }
             screenOverlayView = null
             return
         }
@@ -470,7 +470,7 @@ abstract class OverlayMenu(
 
         // Insert below the menu window: remove it, add the overlay, then re-add the menu on top of it. Both add
         // attempts must run regardless of the other's outcome, or a failure could leave the menu window removed.
-        windowManager.removeView(menuLayout)
+        windowManager.safeRemoveView(menuLayout)
         val overlayAdded = windowManager.safeAddView(newOverlayView, overlayLayoutParams)
         val menuReAdded = windowManager.safeAddView(menuLayout, menuLayoutParams)
         if (!overlayAdded || !menuReAdded) {
