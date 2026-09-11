@@ -57,8 +57,8 @@ android {
     defaultConfig {
         applicationId = getExtraActualApplicationId()
 
-        versionCode = 91
-        versionName = "4.0.0-beta06"
+        versionCode = 100
+        versionName = "4.0.5"
     }
 
     if (project.isBuildForVariant(KlickrFlavour.F_DROID, KlickrBuildType.DEBUG)) {
@@ -124,7 +124,7 @@ if (project.isBuildForVariant(KlickrFlavour.F_DROID)) {
                 else          -> 0  // universal
             }
             val baseVersionCode = output.versionCode.get()
-            output.versionCode.set(abiVersionCode * 10_000 + baseVersionCode)
+            output.versionCode.set(baseVersionCode * 10_000 + abiVersionCode)
         }
     }
 }
